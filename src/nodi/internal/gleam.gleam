@@ -43,7 +43,7 @@ fn to_value_identifier_rest(
   name: String,
   rest: String,
   position: Int,
-) -> Result(ValueIdentifier, ValueContainsInvalidGrapheme) {
+) -> Result(ValueIdentifier, ValueIdentifierError) {
   // Only valid values are '_', lowercase letters and digits, 
   case string.pop_grapheme(rest) {
     Error(_) -> Ok(ValueIdentifier(name))
@@ -52,10 +52,15 @@ fn to_value_identifier_rest(
         char == "_" || is_lowercase_letter(char) || is_digit(char)
       case is_valid_char {
         True -> to_value_identifier_rest(name, rest, position + 1)
-        False -> Error(InvalidGraphemeError(position, char))
+        False -> Error(ValueContainsInvalidGrapheme(position, char))
       }
     }
   }
+}
+
+pub fn value_identifier_to_string(identifier: ValueIdentifier) -> String {
+  let ValueIdentifier(name) = identifier
+  name
 }
 
 fn is_lowercase_letter(char: String) -> Bool {

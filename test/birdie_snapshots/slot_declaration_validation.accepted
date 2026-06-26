@@ -1,0 +1,15 @@
+---
+version: 2.0.1
+title: slot declaration validation
+file: ./test/nodi_test.gleam
+test_name: slot_declaration_validation_test
+---
+snake_case -> valid
+snake_case2 -> valid
+_ -> invalid: ValueContainsInvalidGrapheme(0, "_")
+_discard -> invalid: ValueContainsInvalidGrapheme(0, "_")
+kebab-case -> invalid: ValueContainsInvalidGrapheme(5, "-")
+PascalCase -> invalid: ValueContainsInvalidGrapheme(0, "P")
+1foo -> invalid: ValueContainsInvalidGrapheme(0, "1")
+foo bar -> invalid: ValueContainsInvalidGrapheme(3, " ")
+foo@bar -> invalid: ValueContainsInvalidGrapheme(3, "@")
