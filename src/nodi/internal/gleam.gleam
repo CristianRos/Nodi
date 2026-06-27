@@ -1,4 +1,5 @@
 import gleam/string
+import justin
 import nodi/internal/error.{
   type TypeIdentifierError, type ValueIdentifierError,
   TypeContainsInvalidGrapheme, TypeIsEmpty, ValueContainsInvalidGrapheme,
@@ -119,6 +120,43 @@ pub fn type_identifier_to_string(identifier: TypeIdentifier) -> String {
   let TypeIdentifier(name) = identifier
   name
 }
+
+pub fn value_to_type_identifier(from: ValueIdentifier) -> TypeIdentifier {
+  let name = from |> value_identifier_to_string |> justin.pascal_case
+  let assert Ok(identifier) = type_identifier(from: name)
+    as {
+      "value_to_type_identifier: PascalCase("
+      <> name
+      <> ") should always be a valid TypeIdentifier"
+    }
+  identifier
+}
+
+pub fn phantom_type_names(
+  from: ValueIdentifier,
+) -> #(TypeIdentifier, TypeIdentifier) {
+  let name =
+    from
+    |> value_to_type_identifier
+    |> type_identifier_to_string
+
+  let assert Ok(no) = type_identifier(from: "No" <> name)
+    as {
+      "phantom_type_names: \"No\" + "
+      <> name
+      <> " should always be a valid identifier"
+    }
+  let assert Ok(has) = type_identifier(from: "Has" <> name)
+    as {
+      "phantom_type_names: \"Has\" + "
+      <> name
+      <> " should always be a valid identifier"
+    }
+
+  #(no, has)
+}
+
+// ---- UTILS ------------------------------------------------------------------------
 
 fn is_lowercase_letter(char: String) -> Bool {
   case char {
