@@ -1,0 +1,16 @@
+---
+version: 2.0.1
+title: type identifier validation
+file: ./test/nodi_test.gleam
+test_name: type_identifier_validation_test
+---
+PascalCase -> valid
+PascalCase2 -> valid
+_ -> invalid: TypeContainsInvalidGrapheme(0, "_")
+_Discard -> invalid: TypeContainsInvalidGrapheme(0, "_")
+snake_case -> invalid: TypeContainsInvalidGrapheme(0, "s")
+kebab-case -> invalid: TypeContainsInvalidGrapheme(0, "k")
+Pascal_Case -> invalid: TypeContainsInvalidGrapheme(6, "_")
+1Foo -> invalid: TypeContainsInvalidGrapheme(0, "1")
+Foo Bar -> invalid: TypeContainsInvalidGrapheme(3, " ")
+ -> invalid: TypeIsEmpty

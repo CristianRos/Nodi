@@ -8,7 +8,7 @@ pub fn main() -> Nil {
   gleeunit.main()
 }
 
-pub fn slot_declaration_validation_test() {
+pub fn value_identifier_validation_test() {
   [
     // Valid
     "snake_case",
@@ -21,6 +21,7 @@ pub fn slot_declaration_validation_test() {
     "1foo",
     "foo bar",
     "foo@bar",
+    "",
   ]
   |> list.map(fn(name) {
     name
@@ -31,5 +32,32 @@ pub fn slot_declaration_validation_test() {
     }
   })
   |> string.join("\n")
-  |> birdie.snap(title: "slot declaration validation")
+  |> birdie.snap(title: "value identifier validation")
+}
+
+pub fn type_identifier_validation_test() {
+  [
+    // Valid
+    "PascalCase",
+    "PascalCase2",
+    // Invalid
+    "_",
+    "_Discard",
+    "snake_case",
+    "kebab-case",
+    "Pascal_Case",
+    "1Foo",
+    "Foo Bar",
+    "",
+  ]
+  |> list.map(fn(name) {
+    name
+    <> " -> "
+    <> case gleam.type_identifier(name) {
+      Ok(_) -> "valid"
+      Error(err) -> "invalid: " <> string.inspect(err)
+    }
+  })
+  |> string.join("\n")
+  |> birdie.snap(title: "type identifier validation")
 }
