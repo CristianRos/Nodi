@@ -1,37 +1,33 @@
 pub type Error {
-  // ---- Structural errors ---------------------
-  //
-  SeparatorWithNoDeclarations
-  DeclarationWithoutSeparator
+  // ---- Template errors -----------------------
+  // 
+  InvalidTemplateName(name: String, reason: ValueIdentifierError)
+  SeparatorWithNoMetadata
 
   // ---- Declaration errors (one req=/opt= line in isolation) ----
   //
-  EmptyDeclaration(kind: SlotKind, line: Int)
-  DuplicateSlotName(kind: SlotKind, name: String, line: Int)
-  InvalidSlotName(
-    kind: SlotKind,
-    name: String,
-    reason: ValueIdentifierError,
-    line: Int,
-  )
-  UnknownDeclarationKeyword(keyword: String, line: Int)
+  EmptyDeclaration(keyword: String)
+  DuplicateSlotName(name: String)
+  InvalidKeywordName(name: String)
+  InvalidSlotName(keyword: String, name: String, reason: ValueIdentifierError)
+  MissingDeclarationEquals
 
   // ---- Cross-reference errors (Metadata vs Body, or kind vs kind) ----
   //
-  SlotDeclaredAsBothKinds(name: String)
-  DuplicateSlotKind(kind: SlotKind, line: Int)
-  UndeclaredSlotRef(name: String, line: Int, column: Int)
-  UnusedDeclaration(kind: SlotKind, name: String)
+  DuplicateKeyword(keyword: String)
+  UndeclaredSlotRef(name: String)
+  UnusedDeclaration(name: String)
 
   // ---- Body syntax errors ---------------------
   //
-  MissingWhitespaceAroundSlotRef(name: String, line: Int, column: Int)
+  UnterminatedSlotRef
+  InvalidSlotRef(name: String, reason: ValueIdentifierError)
 }
 
-pub type SlotKind {
-  Required
-  Optional
-}
+// ---- Gleam Identifier Errors ---------------------
+// These errors come from Giaccomo Cavalieri's
+// implementation of Squirrel.
+// https://github.com/giacomocavalieri/squirrel
 
 pub type ValueIdentifierError {
   ValueContainsInvalidGrapheme(at: Int, grapheme: String)
