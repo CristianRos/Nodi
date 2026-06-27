@@ -1,6 +1,8 @@
 import gleam/string
 import nodi/internal/error.{
-  type ValueIdentifierError, ValueContainsInvalidGrapheme, ValueIsEmpty,
+  type TypeIdentifierError, type ValueIdentifierError,
+  TypeContainsInvalidGrapheme, TypeIsEmpty, ValueContainsInvalidGrapheme,
+  ValueIsEmpty,
 }
 
 // Gleam identifiers types and validation come from Giaccomo Cavalieri's
@@ -16,6 +18,17 @@ import nodi/internal/error.{
 /// 
 pub type ValueIdentifier {
   ValueIdentifier(String)
+}
+
+/// A Gleam type identifier, that is a string that starts with an uppercase
+/// letter, is in PascalCase and can only contain lowercase letters, numbers and
+/// uppercase letters.
+///
+/// > 💡 This can only be built using the `gleam.type_identifier` function that
+/// > ensures that a string is a valid Gleam type identifier.
+///
+pub opaque type TypeIdentifier {
+  TypeIdentifier(String)
 }
 
 /// Validates if the given string is a valid Gleam value identifier (that is not
@@ -63,11 +76,64 @@ pub fn value_identifier_to_string(identifier: ValueIdentifier) -> String {
   name
 }
 
+/// Validates if the given string is a valid Gleam type identifier.
+///
+/// > 💡 A valid type identifier can be described by the following regex:
+/// > `[A-Z][A-Za-z0-9]*`.
+///
+pub fn type_identifier(
+  from name: String,
+) -> Result(TypeIdentifier, TypeIdentifierError) {
+  // A valid type identifier needs to start with an uppercase letter.
+  case string.pop_grapheme(name) {
+    Error(_) -> Error(TypeIsEmpty)
+    Ok(#(char, rest)) ->
+      case is_uppercase_letter(char) {
+        False -> Error(TypeContainsInvalidGrapheme(0, char))
+        True -> to_type_identifier_rest(name, rest, 1)
+      }
+  }
+}
+
+fn to_type_identifier_rest(
+  name: String,
+  rest: String,
+  position: Int,
+) -> Result(TypeIdentifier, TypeIdentifierError) {
+  // The rest of an identifier can only contain lowercase or uppercase letters,
+  // numbers, or be empty. In all other cases it's not valid.
+  case string.pop_grapheme(rest) {
+    Error(_) -> Ok(TypeIdentifier(name))
+    Ok(#(char, rest)) -> {
+      let is_valid_char =
+        is_lowercase_letter(char) || is_uppercase_letter(char) || is_digit(char)
+      case is_valid_char {
+        True -> to_type_identifier_rest(name, rest, position + 1)
+        False -> Error(TypeContainsInvalidGrapheme(position, char))
+      }
+    }
+  }
+}
+
+pub fn type_identifier_to_string(identifier: TypeIdentifier) -> String {
+  let TypeIdentifier(name) = identifier
+  name
+}
+
 fn is_lowercase_letter(char: String) -> Bool {
   case char {
     "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" -> True
     "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" -> True
     "w" | "x" | "y" | "z" -> True
+    _ -> False
+  }
+}
+
+fn is_uppercase_letter(char: String) -> Bool {
+  case char {
+    "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" -> True
+    "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" -> True
+    "W" | "X" | "Y" | "Z" -> True
     _ -> False
   }
 }

@@ -37,3 +37,8 @@ pub type ValueIdentifierError {
   ValueContainsInvalidGrapheme(at: Int, grapheme: String)
   ValueIsEmpty
 }
+
+pub type TypeIdentifierError {
+  TypeContainsInvalidGrapheme(at: Int, grapheme: String)
+  TypeIsEmpty
+}
