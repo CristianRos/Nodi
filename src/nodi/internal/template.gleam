@@ -77,8 +77,34 @@ pub fn metadata(metadata: String) -> Result(Metadata, Error) {
 
   use declarations <- result.try(list.try_map(raw_declarations, declaration))
 
-  use _ <- result.try(declarations |> check_duplicate_keywords)
-  use _ <- result.try(declarations |> check_duplicate_slots)
+  // Checks for duplicate keywords
+  use _ <- result.try(
+    declarations
+    |> list.try_fold(set.new(), fn(keyword_set, declaration) {
+      let keyword = keyword_to_string(declaration.keyword)
+      case keyword_set |> set.contains(keyword) {
+        True -> Error(DuplicateKeyword(keyword))
+        False -> Ok(set.insert(keyword_set, keyword))
+      }
+    })
+    |> result.replace(Nil),
+  )
+  // Checks for duplicate slots
+  use _ <- result.try(
+    declarations
+    |> list.fold(list.new(), fn(slot_list, declaration) {
+      slot_list
+      |> list.append(declaration.slots)
+    })
+    |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
+    |> list.try_fold(set.new(), fn(slot_set, slot) {
+      case slot_set |> set.contains(slot) {
+        True -> Error(DuplicateSlotName(slot))
+        False -> Ok(set.insert(slot_set, slot))
+      }
+    })
+    |> result.replace(Nil),
+  )
 
   let #(required, optional) =
     declarations
@@ -155,86 +181,50 @@ pub fn template(
     },
   )
 
-  use _ <- result.try(check_slot_references(metadata, body))
+  // Checks slot references are valid or error
+  use _ <- result.try({
+    let declared = case metadata {
+      None -> set.new()
+      Some(metadata) ->
+        [metadata.required, metadata.optional]
+        // List(Option(Declaration)) -> List(Declaration)
+        |> list.filter_map(option.to_result(_, Nil))
+        // List(Declaration) -> List(Slot)
+        |> list.flat_map(fn(declaration) { declaration.slots })
+        // List(Slot) -> List(String)
+        |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
+        // List(String) -> Set(String)
+        |> set.from_list
+    }
+
+    let referenced =
+      body
+      |> list.filter_map(fn(node) {
+        case node {
+          Text(_) -> Error(Nil)
+          SlotReference(name) -> Ok(gl.value_identifier_to_string(name))
+        }
+      })
+      |> set.from_list
+
+    // Checks for declared slots that aren't referenced in the body
+    use _ <- result.try(
+      case set.difference(from: declared, minus: referenced) |> set.to_list {
+        [] -> Ok(Nil)
+        [unused, ..] -> Error(UnusedDeclaration(unused))
+      },
+    )
+
+    // Checks for slot references that exist in the body but aren't declared in the metadata
+    use _ <- result.try(
+      case set.difference(from: referenced, minus: declared) |> set.to_list {
+        [] -> Ok(Nil)
+        [undeclared, ..] -> Error(UndeclaredSlotRef(undeclared))
+      },
+    )
+
+    Ok(Nil)
+  })
 
   Ok(Template(name, metadata, body))
-}
-
-// ---- Validation check utilities -------------------------------
-fn check_duplicate_keywords(
-  declarations: List(Declaration),
-) -> Result(Nil, Error) {
-  list.try_fold(declarations, set.new(), fn(keyword_set, declaration) {
-    let keyword = keyword_to_string(declaration.keyword)
-    case keyword_set |> set.contains(keyword) {
-      True -> Error(DuplicateKeyword(keyword))
-      False -> Ok(set.insert(keyword_set, keyword))
-    }
-  })
-  |> result.replace(Nil)
-}
-
-fn check_duplicate_slots(
-  declarations: List(Declaration),
-) -> Result(Nil, Error) {
-  declarations
-  |> list.fold(list.new(), fn(slot_list, declaration) {
-    slot_list
-    |> list.append(declaration.slots)
-  })
-  |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
-  |> list.try_fold(set.new(), fn(slot_set, slot) {
-    case slot_set |> set.contains(slot) {
-      True -> Error(DuplicateSlotName(slot))
-      False -> Ok(set.insert(slot_set, slot))
-    }
-  })
-  |> result.replace(Nil)
-}
-
-fn check_slot_references(
-  metadata: Option(Metadata),
-  body: List(Node),
-) -> Result(Nil, Error) {
-  let declared = case metadata {
-    None -> set.new()
-    Some(metadata) ->
-      [metadata.required, metadata.optional]
-      // List(Option(Declaration)) -> List(Declaration)
-      |> list.filter_map(option.to_result(_, Nil))
-      // List(Declaration) -> List(Slot)
-      |> list.flat_map(fn(declaration) { declaration.slots })
-      // List(Slot) -> List(String)
-      |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
-      // List(String) -> Set(String)
-      |> set.from_list
-  }
-
-  let referenced =
-    body
-    |> list.filter_map(fn(node) {
-      case node {
-        Text(_) -> Error(Nil)
-        SlotReference(name) -> Ok(gl.value_identifier_to_string(name))
-      }
-    })
-    |> set.from_list
-
-  // Checks for declared slots that aren't referenced in the body
-  use _ <- result.try(
-    case set.difference(from: declared, minus: referenced) |> set.to_list {
-      [] -> Ok(Nil)
-      [unused, ..] -> Error(UnusedDeclaration(unused))
-    },
-  )
-
-  // Checks for slot references that exist in the body but aren't declared in the metadata
-  use _ <- result.try(
-    case set.difference(from: referenced, minus: declared) |> set.to_list {
-      [] -> Ok(Nil)
-      [undeclared, ..] -> Error(UndeclaredSlotRef(undeclared))
-    },
-  )
-
-  Ok(Nil)
 }
