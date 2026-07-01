@@ -41,10 +41,8 @@ pub type Declaration {
 
 pub fn declaration(declaration: String) -> Result(Declaration, Error) {
   use #(raw_keyword, raw_slots) <- result.try(
-    case string.split_once(declaration, on: "=") {
-      Ok(value) -> Ok(value)
-      Error(_) -> Error(MissingDeclarationEquals)
-    },
+    string.split_once(declaration, on: "=")
+    |> result.replace_error(MissingDeclarationEquals(string.trim(declaration))),
   )
   use keyword <- result.try(keyword(raw_keyword))
   use slots <- result.try(case raw_slots {
@@ -74,6 +72,7 @@ pub fn metadata(metadata: String) -> Result(Metadata, Error) {
     metadata
     |> string.replace("\r\n", "\n")
     |> string.split(on: "\n")
+    |> list.filter(fn(line) { string.trim(line) != "" })
 
   use declarations <- result.try(list.try_map(raw_declarations, declaration))
 
@@ -125,7 +124,12 @@ pub type Node {
 
 pub fn body(remaining: String) -> Result(List(Node), Error) {
   case string.split_once(remaining, on: "<%") {
-    Error(_) -> Ok([Text(remaining)])
+    Error(_) -> {
+      case remaining {
+        "" -> Ok([])
+        _ -> Ok([Text(remaining)])
+      }
+    }
     Ok(#(before, after)) -> {
       use #(raw_name, rest) <- result.try(
         string.split_once(after, on: "%>")
@@ -166,7 +170,7 @@ pub fn template(
   use #(metadata, body) <- result.try(
     case string.split_once(html_file, on: "---") {
       Ok(#(raw_metadata, raw_body)) -> {
-        use _ <- result.try(case raw_metadata {
+        use _ <- result.try(case string.trim(raw_metadata) {
           "" -> Error(SeparatorWithNoMetadata)
           _ -> Ok(Nil)
         })

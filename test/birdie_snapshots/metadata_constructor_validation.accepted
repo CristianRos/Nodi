@@ -1,0 +1,13 @@
+---
+version: 2.0.1
+title: metadata constructor validation
+file: ./test/nodi_test.gleam
+test_name: metadata_test
+---
+req=foo,bar -> valid: Metadata(Some(Declaration(Required, [Slot(ValueIdentifier("foo")), Slot(ValueIdentifier("bar"))])), None)
+opt=baz -> valid: Metadata(None, Some(Declaration(Optional, [Slot(ValueIdentifier("baz"))])))
+req=foo,bar ⏎ opt=baz -> valid: Metadata(Some(Declaration(Required, [Slot(ValueIdentifier("foo")), Slot(ValueIdentifier("bar"))])), Some(Declaration(Optional, [Slot(ValueIdentifier("baz"))])))
+req=foo ⏎ req=bar -> invalid: DuplicateKeyword("Required")
+req=foo ⏎ opt=foo -> invalid: DuplicateSlotName("foo")
+req=foo,foo -> invalid: DuplicateSlotName("foo")
+req=foo ⏎ xyz=bar -> invalid: InvalidKeywordName("xyz")

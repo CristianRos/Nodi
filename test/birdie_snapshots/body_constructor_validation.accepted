@@ -1,0 +1,16 @@
+---
+version: 2.0.1
+title: body constructor validation
+file: ./test/nodi_test.gleam
+test_name: body_test
+---
+just plain text, no slots here -> valid: [Text("just plain text, no slots here")]
+hello <% name %>! -> valid: [Text("hello "), SlotReference(ValueIdentifier("name")), Text("!")]
+<% name %> says hello -> valid: [SlotReference(ValueIdentifier("name")), Text(" says hello")]
+hello <% name %> -> valid: [Text("hello "), SlotReference(ValueIdentifier("name"))]
+<% first %><% second %> -> valid: [SlotReference(ValueIdentifier("first")), SlotReference(ValueIdentifier("second"))]
+hello %> name <% foo %> -> valid: [Text("hello %> name "), SlotReference(ValueIdentifier("foo"))]
+ -> valid: []
+hello <% name -> invalid: UnterminatedSlotRef
+hello <% 1bad %> -> invalid: InvalidSlotRef("1bad", ValueContainsInvalidGrapheme(0, "1"))
+hello %> name <% -> invalid: UnterminatedSlotRef

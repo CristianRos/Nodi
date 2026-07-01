@@ -1,0 +1,12 @@
+---
+version: 2.0.1
+title: template constructor validation
+file: ./test/nodi_test.gleam
+test_name: template_test
+---
+greeting | req=foo ⏎ --- ⏎ hello <% foo %> -> valid: Template(ValueIdentifier("greeting"), Some(Metadata(Some(Declaration(Required, [Slot(ValueIdentifier("foo"))])), None)), [Text("\nhello "), SlotReference(ValueIdentifier("foo"))])
+plain | just static text, no slots, no separator -> valid: Template(ValueIdentifier("plain"), None, [Text("just static text, no slots, no separator")])
+1bad | req=foo ⏎ --- ⏎ hello <% foo %> -> invalid: InvalidTemplateName("1bad", ValueContainsInvalidGrapheme(0, "1"))
+oops | req=foo ⏎ --- ⏎ hello <% foo %><% bar %> -> invalid: UndeclaredSlotRef("bar")
+unused | req=foo,bar ⏎ --- ⏎ hello <% foo %> -> invalid: UnusedDeclaration("bar")
+separator_no_meta | --- ⏎ hello, just text -> invalid: SeparatorWithNoMetadata

@@ -1,0 +1,18 @@
+---
+version: 2.0.1
+title: declaration constructor validation
+file: ./test/nodi_test.gleam
+test_name: declaration_test
+---
+req=foo -> valid: Declaration(Required, [Slot(ValueIdentifier("foo"))])
+req=foo,bar -> valid: Declaration(Required, [Slot(ValueIdentifier("foo")), Slot(ValueIdentifier("bar"))])
+req=foo , bar , baz -> valid: Declaration(Required, [Slot(ValueIdentifier("foo")), Slot(ValueIdentifier("bar")), Slot(ValueIdentifier("baz"))])
+opt=wibble -> valid: Declaration(Optional, [Slot(ValueIdentifier("wibble"))])
+opt=wibble,wobble -> valid: Declaration(Optional, [Slot(ValueIdentifier("wibble")), Slot(ValueIdentifier("wobble"))])
+req= -> invalid: EmptyDeclaration("Required")
+opt= -> invalid: EmptyDeclaration("Optional")
+req -> invalid: MissingDeclarationEquals("req")
+opt -> invalid: MissingDeclarationEquals("opt")
+xyz=foo -> invalid: InvalidKeywordName("xyz")
+req=_discard -> invalid: InvalidSlotName("Required", "_discard", ValueContainsInvalidGrapheme(0, "_"))
+req=Foo -> invalid: InvalidSlotName("Required", "Foo", ValueContainsInvalidGrapheme(0, "F"))

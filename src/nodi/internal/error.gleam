@@ -4,22 +4,16 @@ pub type Error {
   InvalidTemplateName(name: String, reason: ValueIdentifierError)
   SeparatorWithNoMetadata
 
-  // ---- Declaration errors (one req=/opt= line in isolation) ----
-  //
   EmptyDeclaration(keyword: String)
   DuplicateSlotName(name: String)
   InvalidKeywordName(name: String)
   InvalidSlotName(keyword: String, name: String, reason: ValueIdentifierError)
-  MissingDeclarationEquals
+  MissingDeclarationEquals(declaration: String)
 
-  // ---- Cross-reference errors (Metadata vs Body, or kind vs kind) ----
-  //
   DuplicateKeyword(keyword: String)
   UndeclaredSlotRef(name: String)
   UnusedDeclaration(name: String)
 
-  // ---- Body syntax errors ---------------------
-  //
   UnterminatedSlotRef
   InvalidSlotRef(name: String, reason: ValueIdentifierError)
 }
