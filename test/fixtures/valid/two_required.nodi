@@ -1,4 +1,3 @@
-<!-- fixtures/valid/two_required.html -->
 req=foo,bar
 ---
 <div>

@@ -1,0 +1,5 @@
+opt=foo
+---
+<div>
+    <% foo %>
+</div>
