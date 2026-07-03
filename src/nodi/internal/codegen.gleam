@@ -2,8 +2,8 @@ import gleam/list
 import gleam/option.{None, Some}
 import gleam/string
 import justin
-import nodi/internal/gleam as gl
-import nodi/internal/template.{type Node, type Template, SlotReference, Text}
+import nodi/internal/gleam
+import nodi/internal/template.{type Node, type Template, SlotReference, Text} as _
 
 pub fn emit_imports(has_optional has_optional: Bool) {
   case has_optional {
@@ -201,7 +201,7 @@ pub fn emit_body(
         }
         <> "\""
       SlotReference(name) -> {
-        let name = gl.value_identifier_to_string(name)
+        let name = gleam.value_identifier_to_string(name)
         case optional_slots |> list.contains(name) {
           True -> name
           False -> template_name <> "." <> name
@@ -259,16 +259,17 @@ pub fn emit_constant(
   <> emit_body(body:, template_name: "", optional_slots: [])
 }
 
-pub fn emit_file(template template: Template) {
-  let template_name = gl.value_identifier_to_string(template.name)
+pub fn emit_file(template: Template) {
+  let template_name = gleam.value_identifier_to_string(template.name)
   let template_type =
-    gl.value_to_type_identifier(template.name) |> gl.type_identifier_to_string
+    gleam.value_to_type_identifier(template.name)
+    |> gleam.type_identifier_to_string
   let required_slots = case template.metadata {
     Some(meta) ->
       case meta.required {
         Some(required) ->
           required.slots
-          |> list.map(fn(slot) { slot.name |> gl.value_identifier_to_string })
+          |> list.map(fn(slot) { slot.name |> gleam.value_identifier_to_string })
         None -> []
       }
     None -> []
@@ -278,7 +279,7 @@ pub fn emit_file(template template: Template) {
       case meta.optional {
         Some(optional) ->
           optional.slots
-          |> list.map(fn(slot) { slot.name |> gl.value_identifier_to_string })
+          |> list.map(fn(slot) { slot.name |> gleam.value_identifier_to_string })
         None -> []
       }
     None -> []

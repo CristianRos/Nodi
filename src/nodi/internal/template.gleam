@@ -9,7 +9,7 @@ import nodi/internal/error.{
   MissingDeclarationEquals, SeparatorWithNoMetadata, UndeclaredSlotRef,
   UnterminatedSlotRef, UnusedDeclaration,
 }
-import nodi/internal/gleam.{type ValueIdentifier} as gl
+import nodi/internal/gleam.{type ValueIdentifier}
 
 pub type Keyword {
   Required
@@ -52,7 +52,7 @@ pub fn declaration(declaration: String) -> Result(Declaration, Error) {
       |> string.split(",")
       |> list.try_map(fn(raw) {
         let slot = string.trim(raw)
-        case gl.value_identifier(from: slot) {
+        case gleam.value_identifier(from: slot) {
           Ok(valid) -> Ok(Slot(valid))
           Error(reason) ->
             Error(InvalidSlotName(keyword_to_string(keyword), slot, reason))
@@ -95,7 +95,7 @@ pub fn metadata(metadata: String) -> Result(Metadata, Error) {
       slot_list
       |> list.append(declaration.slots)
     })
-    |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
+    |> list.map(fn(slot) { gleam.value_identifier_to_string(slot.name) })
     |> list.try_fold(set.new(), fn(slot_set, slot) {
       case slot_set |> set.contains(slot) {
         True -> Error(DuplicateSlotName(slot))
@@ -138,7 +138,7 @@ pub fn body(remaining: String) -> Result(List(Node), Error) {
 
       use name <- result.try(
         string.trim(raw_name)
-        |> gl.value_identifier
+        |> gleam.value_identifier
         |> result.map_error(InvalidSlotRef(string.trim(raw_name), _)),
       )
 
@@ -159,16 +159,16 @@ pub type Template {
 }
 
 pub fn template(
-  raw_name: String,
-  html_file: String,
+  raw_name raw_name: String,
+  nodi_file nodi_file: String,
 ) -> Result(Template, Error) {
   use name <- result.try(
-    gl.value_identifier(raw_name)
+    gleam.value_identifier(raw_name)
     |> result.map_error(InvalidTemplateName(raw_name, _)),
   )
 
   use #(metadata, body) <- result.try(
-    case string.split_once(html_file, on: "---") {
+    case string.split_once(nodi_file, on: "---") {
       Ok(#(raw_metadata, raw_body)) -> {
         use _ <- result.try(case string.trim(raw_metadata) {
           "" -> Error(SeparatorWithNoMetadata)
@@ -179,7 +179,7 @@ pub fn template(
         Ok(#(Some(metadata), body))
       }
       Error(_) -> {
-        use body <- result.try(body(html_file))
+        use body <- result.try(body(nodi_file))
         Ok(#(None, body))
       }
     },
@@ -196,7 +196,7 @@ pub fn template(
         // List(Declaration) -> List(Slot)
         |> list.flat_map(fn(declaration) { declaration.slots })
         // List(Slot) -> List(String)
-        |> list.map(fn(slot) { gl.value_identifier_to_string(slot.name) })
+        |> list.map(fn(slot) { gleam.value_identifier_to_string(slot.name) })
         // List(String) -> Set(String)
         |> set.from_list
     }
@@ -206,7 +206,7 @@ pub fn template(
       |> list.filter_map(fn(node) {
         case node {
           Text(_) -> Error(Nil)
-          SlotReference(name) -> Ok(gl.value_identifier_to_string(name))
+          SlotReference(name) -> Ok(gleam.value_identifier_to_string(name))
         }
       })
       |> set.from_list

@@ -157,12 +157,12 @@ pub fn template_test() {
     #("separator_no_meta", "---\nhello, just text"),
   ]
   |> list.map(fn(pair) {
-    let #(name, html) = pair
+    let #(name, nodi) = pair
     name
     <> " | "
-    <> string.replace(html, "\n", " ⏎ ")
+    <> string.replace(nodi, "\n", " ⏎ ")
     <> " -> "
-    <> case template.template(name, html) {
+    <> case template.template(name, nodi) {
       Ok(t) -> "valid: " <> string.inspect(t)
       Error(err) -> "invalid: " <> string.inspect(err)
     }
