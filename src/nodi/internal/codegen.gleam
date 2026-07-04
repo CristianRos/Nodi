@@ -6,15 +6,30 @@ import justin
 import nodi/internal/gleam
 import nodi/internal/template.{type Node, type Template, SlotReference, Text} as _
 
-pub fn emit_imports(has_optional has_optional: Bool) -> Document {
-  case has_optional {
+/// Creates a document for imports, in case there is no optional slots
+/// it creates an empty document. 
+fn imports(has_optional_slots has_optional_slots: Bool) -> Document {
+  case has_optional_slots {
     True -> doc.from_string("import gleam/option.{type Option, Some, None}")
     False -> doc.empty
   }
 }
 
-pub fn emit_template_type(
-  template_type template_type: String,
+/// Creates a document for the template type
+/// 
+/// ```
+/// // Input:
+/// template_type_name: "Wibble"
+/// required_slots: ["wobble"]
+/// optional_slots: ["foo", "bar"]
+/// 
+/// // Output:
+/// pub type Wibble(foo, bar) {
+///   Wibble(wobble: String, foo: Option(String), bar: Option(String))
+/// }
+/// ```
+fn template_type(
+  template_type_name template_type_name: String,
   required_slots required_slots: List(String),
   optional_slots optional_slots: List(String),
 ) -> Document {
@@ -43,13 +58,13 @@ pub fn emit_template_type(
   }
 
   doc.concat([
-    doc.from_string("pub type " <> template_type),
+    doc.from_string("pub type " <> template_type_name),
     type_params,
     doc.from_string(" {"),
     doc.line,
     doc.nest(
       doc.concat([
-        doc.from_string(template_type <> "("),
+        doc.from_string(template_type_name <> "("),
         doc.nest(doc.join(fields, with: doc.break(", ", ",")), by: 2),
         doc.from_string(")"),
       ])
@@ -62,9 +77,20 @@ pub fn emit_template_type(
   |> doc.group
 }
 
-pub fn emit_optional_slot_types(
-  optional_slots optional_slots: List(String),
-) -> Document {
+/// Creates a document with the phantom types `NoType` and `HasType`
+/// for each optional slot
+/// 
+/// ```
+/// // Input:
+/// optional_slots: ["wibble", "wobble"]
+/// 
+/// // Generates:
+/// pub type NoWibble
+/// pub type HasWibble
+/// pub type NoWobble
+/// pub type HasWobble
+/// ```
+fn phantom_types(optional_slots optional_slots: List(String)) -> Document {
   optional_slots
   |> list.map(fn(slot) {
     // NOTE(Cris): This should work as if we were validating value to string type
@@ -83,21 +109,34 @@ pub fn emit_optional_slot_types(
   |> doc.group
 }
 
-pub fn emit_template_constructor_fn(
+/// Creates a document for the constructor function of the template
+/// given the proper parameters
+/// 
+/// ```
+/// // Input:
+/// template_name: "wibble"
+/// template_type_name: "Wibble"
+/// required_slots: ["wobble"]
+/// optional_slots: ["foo", "bar"]
+/// 
+/// // Generates:
+/// pub fn wibble(wobble: String, foo: Option(String), bar: Option(String)) -> Wibble(NoFoo, NoBar) {
+///   Wibble(wobble:, foo: None, bar: None)
+/// }
+/// ```
+fn constructor_fn(
   template_name template_name: String,
-  template_type template_type: String,
+  template_type_name template_type_name: String,
   required_slots required_slots: List(String),
   optional_slots optional_slots: List(String),
 ) -> Document {
-  let has_required = !list.is_empty(required_slots)
-  let has_optional = !list.is_empty(optional_slots)
-  let has_slots = has_required || has_optional
+  let has_optional_slots = !list.is_empty(optional_slots)
 
   let optional_types =
     optional_slots
     |> list.map(fn(slot) { slot |> justin.pascal_case })
 
-  let fields = {
+  let params = {
     let req =
       required_slots
       |> list.map(fn(slot) { doc.from_string(slot <> ": String") })
@@ -120,11 +159,11 @@ pub fn emit_template_constructor_fn(
     list.append(req, opt)
   }
 
-  let constructor = case has_optional {
-    False -> doc.from_string(template_type)
+  let return_type = case has_optional_slots {
+    False -> doc.from_string(template_type_name)
     True ->
       doc.concat([
-        doc.from_string(template_type <> "("),
+        doc.from_string(template_type_name <> "("),
         optional_types
           |> list.map(fn(opt) { doc.from_string("No" <> opt) })
           |> doc.join(with: doc.break(", ", ",")),
@@ -133,35 +172,48 @@ pub fn emit_template_constructor_fn(
       |> doc.group
   }
 
-  let return = case has_slots {
-    False -> doc.from_string(template_type)
-    True ->
-      doc.concat([
-        doc.from_string(template_type),
-        doc.line,
-        doc.join(return_fields, with: doc.break(", ", ",")),
-      ])
-      |> doc.group
-  }
+  let constructor_call =
+    doc.concat([
+      doc.from_string(template_type_name <> "("),
+      doc.join(return_fields, with: doc.break(", ", ",")),
+      doc.from_string(")"),
+    ])
+    |> doc.group
 
   doc.concat([
     doc.from_string("pub fn " <> template_name <> "("),
-    doc.join(fields, with: doc.break(", ", ",")),
-    doc.from_string(") {"),
-    doc.line,
-    constructor,
+    doc.join(params, with: doc.break(", ", ",")),
+    doc.from_string(") -> "),
+    return_type,
     doc.from_string(" {"),
     doc.line,
-    return,
+    doc.nest(constructor_call, by: 2),
     doc.line,
     doc.from_string("}"),
   ])
   |> doc.group
 }
 
-pub fn emit_optional_builder_fns(
+/// Creates a document with a builder `with_*` function for each optional slot
+/// 
+/// ```
+/// // Input:
+/// template_name: "wibble"
+/// template_type_name: "Wibble"
+/// optional_slots: ["foo", "bar"]
+/// 
+/// // Generates:
+/// pub fn with_foo(wibble: Wibble(NoFoo, bar), foo: String) -> Wibble(HasFoo, bar) {
+///   Wibble(..wibble, foo: Some(foo))
+/// }
+/// 
+/// pub fn with_bar(wibble: Wibble(foo, NoBar), bar: String) -> Wibble(foo, HasBar) {
+///   Wibble(..wibble, bar: Some(bar))
+/// }
+/// ```
+fn builder_fns(
   template_name template_name: String,
-  template_type template_type: String,
+  template_type_name template_type_name: String,
   optional_slots optional_slots: List(String),
 ) -> Document {
   optional_slots
@@ -188,19 +240,27 @@ pub fn emit_optional_builder_fns(
 
     doc.concat([
       doc.from_string("pub fn with_" <> slot <> "("),
-      doc.from_string(template_name <> ": " <> template_type <> "("),
-      doc.join(type_args, with: doc.break(", ", ",")),
-      doc.from_string("),"),
-      doc.line,
-      doc.from_string(slot <> ": String"),
-      doc.line,
-      doc.from_string(") -> " <> template_type <> "("),
-      doc.join(return_args, with: doc.break(", ", ",")),
-      doc.from_string(") {"),
+      doc.concat([
+        doc.from_string(template_name <> ": " <> template_type_name <> "("),
+        doc.join(type_args, with: doc.break(", ", ",")),
+        doc.from_string(")"),
+        doc.break(", ", ","),
+        doc.from_string(slot <> ": String"),
+        doc.break("", ""),
+      ])
+        |> doc.group,
+      doc.from_string(") -> "),
+      doc.concat([
+        doc.from_string(template_type_name <> "("),
+        doc.join(return_args, with: doc.break(", ", ",")),
+        doc.from_string(")"),
+      ])
+        |> doc.group,
+      doc.from_string(" {"),
       doc.line,
       doc.nest(
         doc.concat([
-          doc.from_string(template_type <> "(.." <> template_name <> ", "),
+          doc.from_string(template_type_name <> "(.." <> template_name <> ", "),
           doc.from_string(slot <> ": Some(" <> slot <> "))"),
         ])
           |> doc.group,
@@ -214,15 +274,33 @@ pub fn emit_optional_builder_fns(
   |> doc.join(with: doc.line)
 }
 
-pub fn emit_body(
-  body body: List(Node),
+/// Creates a document for the template body, escaping Text nodes and
+/// resolving SlotReferences to either local variables (optional slots)
+/// or field accesses (required slots)
+/// 
+/// ```
+/// // Input:
+/// body_nodes: [
+///   Text("<div>"),
+///   SlotReference("foo"),
+///   SlotReference("bar"),
+///   Text("</div>"),
+/// ]
+/// template_name: "wibble",
+/// optional_slots: ["bar"]
+/// 
+/// // Generates:
+/// "<div>" <> wibble.foo <> bar <> "</div>"
+/// ```
+fn body(
+  body_nodes body_nodes: List(Node),
   template_name template_name: String,
   optional_slots optional_slots: List(String),
 ) -> Document {
-  case body {
+  case body_nodes {
     [] -> doc.from_string("\"\"")
     _ ->
-      body
+      body_nodes
       |> list.map(fn(node) {
         case node {
           Text(text) -> {
@@ -247,11 +325,38 @@ pub fn emit_body(
   }
 }
 
-pub fn emit_template_to_string_fn(
+/// Creates a document for the `to_string` function of the template
+///
+/// Optional slots are unwrapped from `Option(String)` into local variables
+/// at the top of the function body, defaulting to `""` when `None`.
+/// Required slots are accessed directly via the template value.
+///
+/// ```
+/// // Input:
+/// template_name: "wibble"
+/// template_type_name: "Wibble"
+/// optional_slots: ["bar"]
+/// body_nodes: [
+///   Text("<div>"),
+///   SlotReference("foo"),
+///   SlotReference("bar"),
+///   Text("</div>"),
+/// ]
+///
+/// // Output:
+/// pub fn to_string(wibble: Wibble(bar)) -> String {
+///   let bar = case wibble.bar {
+///     Some(slot) -> slot
+///     None -> ""
+///   }
+///   "<div>" <> wibble.foo <> bar <> "</div>"
+/// }
+/// ```
+fn to_string_fn(
   template_name template_name: String,
-  template_type template_type: String,
+  template_type_name template_type_name: String,
   optional_slots optional_slots: List(String),
-  body body: List(Node),
+  body_nodes body_nodes: List(Node),
 ) -> Document {
   let type_args = optional_slots |> list.map(doc.from_string)
   let opt_slots_body =
@@ -278,33 +383,57 @@ pub fn emit_template_to_string_fn(
 
   doc.concat([
     doc.from_string(
-      "pub fn to_string(" <> template_name <> ": " <> template_type <> "(",
+      "pub fn to_string(" <> template_name <> ": " <> template_type_name <> "(",
     ),
     doc.join(type_args, with: doc.break(", ", ",")),
     doc.from_string(")) -> String {"),
     doc.line,
     doc.join(opt_slots_body, with: doc.line),
-    emit_body(body:, template_name:, optional_slots:),
+    body(body_nodes:, template_name:, optional_slots:),
     doc.line,
     doc.from_string("}"),
   ])
   |> doc.group
 }
 
-pub fn emit_constant(
+/// Creates a document for a static template with no slots,
+/// generating a public constant instead of a type and functions.
+///
+/// ```
+/// // Input:
+/// template_name: "wibble"
+/// body_nodes: [Text("<div>static content</div>")]
+///
+/// // Output:
+/// pub const wibble: String = "<div>static content</div>"
+/// ```
+fn constant(
   template_name template_name: String,
-  body body: List(Node),
+  body_nodes body_nodes: List(Node),
 ) -> Document {
   doc.concat([
     doc.from_string("pub const " <> template_name <> ": String = "),
-    emit_body(body:, template_name: "", optional_slots: []),
+    body(body_nodes:, template_name: "", optional_slots: []),
   ])
   |> doc.group
 }
 
-pub fn emit_file(template: Template) {
+/// Generates a complete Gleam source file document from a parsed Template.
+///
+/// If the template has no slots, generates a single `pub const` string constant.
+/// If the template has slots, generates a full module with:
+/// - imports (only when optional slots are present)
+/// - a custom type with phantom type parameters for each optional slot
+/// - `No*/Has*` phantom types for each optional slot
+/// - a base constructor function
+/// - a `with_*` builder function for each optional slot
+/// - a `to_string` function that renders the template to a String
+///
+/// The returned `Document` should be rendered with `doc.to_string(document, 80)`
+/// and written to a `.gleam` file colocated with the source `.nodi` file.
+pub fn gen_file(template: Template) -> Document {
   let template_name = gleam.value_identifier_to_string(template.name)
-  let template_type =
+  let template_type_name =
     gleam.value_to_type_identifier(template.name)
     |> gleam.type_identifier_to_string
   let required_slots = case template.metadata {
@@ -327,38 +456,34 @@ pub fn emit_file(template: Template) {
       }
     None -> []
   }
-  let body = template.body
+  let body_nodes = template.body
   let has_slots =
     !list.is_empty(required_slots) || !list.is_empty(optional_slots)
 
   case has_slots {
-    False -> emit_constant(template_name:, body:)
+    False -> constant(template_name:, body_nodes:)
     True ->
       doc.concat([
-        emit_imports(!list.is_empty(optional_slots)),
+        imports(!list.is_empty(optional_slots)),
         doc.line,
-        emit_template_type(template_type:, required_slots:, optional_slots:),
+        template_type(template_type_name:, required_slots:, optional_slots:),
         doc.line,
-        emit_optional_slot_types(optional_slots:),
+        phantom_types(optional_slots:),
         doc.line,
-        emit_template_constructor_fn(
+        constructor_fn(
           template_name:,
-          template_type:,
+          template_type_name:,
           required_slots:,
           optional_slots:,
         ),
         doc.line,
-        emit_optional_builder_fns(
-          template_name:,
-          template_type:,
-          optional_slots:,
-        ),
+        builder_fns(template_name:, template_type_name:, optional_slots:),
         doc.line,
-        emit_template_to_string_fn(
+        to_string_fn(
           template_name:,
-          template_type:,
+          template_type_name:,
           optional_slots:,
-          body:,
+          body_nodes:,
         ),
       ])
       |> doc.group

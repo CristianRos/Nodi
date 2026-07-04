@@ -44,7 +44,7 @@ pub fn generate_files() -> Nil {
             filepath.directory_name(path),
             filepath.strip_extension(filepath.base_name(path)) <> ".gleam",
           )
-        let content = codegen.emit_file(template) |> doc.to_string(80)
+        let content = codegen.gen_file(template) |> doc.to_string(80)
         let assert Ok(_) = simplifile.write(content, to: output_path)
           as { "Couldn't write to " <> output_path }
       })
