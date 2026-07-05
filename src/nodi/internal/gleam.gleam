@@ -1,3 +1,10 @@
+// Portions of this file are derived from squirrel
+// (https://github.com/giacomocavalieri/squirrel)
+// Copyright 2024 Giacomo Cavalieri
+// Licensed under the Apache License, Version 2.0
+//
+// Gleam identifier types, validation and utils come from Giacomo Cavalieri's
+// implementation, including the nice comments :p
 import gleam/string
 import justin
 import nodi/internal/error.{
@@ -5,10 +12,6 @@ import nodi/internal/error.{
   TypeContainsInvalidGrapheme, TypeIsEmpty, ValueContainsInvalidGrapheme,
   ValueIsEmpty,
 }
-
-// Gleam identifier types, validation and utils come from Giacomo Cavalieri's
-// implementation of Squirrel, including the nice comments :p
-// https://github.com/giacomocavalieri/squirrel
 
 /// A Gleam identifier, that is a String that starts with a lowercase letter,
 /// is in snake_case, and can only contain lowercase letters, numbers and
@@ -130,30 +133,6 @@ pub fn value_to_type_identifier(from: ValueIdentifier) -> TypeIdentifier {
       <> ") should always be a valid TypeIdentifier"
     }
   identifier
-}
-
-pub fn phantom_type_names(
-  from: ValueIdentifier,
-) -> #(TypeIdentifier, TypeIdentifier) {
-  let name =
-    from
-    |> value_to_type_identifier
-    |> type_identifier_to_string
-
-  let assert Ok(no) = type_identifier(from: "No" <> name)
-    as {
-      "phantom_type_names: \"No\" + "
-      <> name
-      <> " should always be a valid identifier"
-    }
-  let assert Ok(has) = type_identifier(from: "Has" <> name)
-    as {
-      "phantom_type_names: \"Has\" + "
-      <> name
-      <> " should always be a valid identifier"
-    }
-
-  #(no, has)
 }
 
 // ---- UTILS ------------------------------------------------------------------------
