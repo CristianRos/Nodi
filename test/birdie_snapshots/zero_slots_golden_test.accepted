@@ -1,0 +1,16 @@
+---
+version: 2.0.1
+title: zero slots golden test
+file: ./test/nodi_test.gleam
+test_name: zero_slots_golden_test
+---
+>> zero_slots.nodi
+<div>
+    <p>Hello world</p>
+</div>
+
+>> zero_slots.gleam
+pub const zero_slots: String = "<div>
+    <p>Hello world</p>
+</div>"
+

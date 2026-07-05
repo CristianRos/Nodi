@@ -20,8 +20,12 @@ pub type Error {
   UnterminatedSlotRef
   InvalidSlotRef(name: String, reason: ValueIdentifierError)
 
-  // ---- File IO errors ------------------------
+  // ---- Simplifile errors ------------------------
   CannotReadFile(from: String, reason: simplifile.FileError)
+  CannotWriteFile(from: String, reason: simplifile.FileError)
+
+  // ---- Shellout errors --------------------------
+  CannotFormatFile(from: String, message: String)
 }
 
 pub fn describe_error(error: Error) -> String {
@@ -79,6 +83,13 @@ pub fn describe_error(error: Error) -> String {
       <> from
       <> "\": "
       <> simplifile.describe_error(reason)
+    CannotWriteFile(from:, reason:) ->
+      "Cannot write the file \""
+      <> from
+      <> "\": "
+      <> simplifile.describe_error(reason)
+    CannotFormatFile(from:, message:) ->
+      "Cannot format the file \"" <> from <> "\": " <> message
   }
 }
 

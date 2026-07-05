@@ -1,0 +1,50 @@
+---
+version: 2.0.1
+title: both declarations golden test
+file: ./test/nodi_test.gleam
+test_name: both_declarations_golden_test
+---
+>> both_declarations.nodi
+req=foo
+opt=bar
+---
+<div>
+    <% foo %>
+    <% bar %>
+</div>
+
+>> both_declarations.gleam
+import gleam/option.{type Option, None, Some}
+
+pub type BothDeclarations(bar) {
+  BothDeclarations(foo: String, bar: Option(String))
+}
+
+pub type NoBar
+
+pub type HasBar
+
+pub fn new(foo: String) -> BothDeclarations(NoBar) {
+  BothDeclarations(foo:, bar: None)
+}
+
+pub fn with_bar(
+  both_declarations: BothDeclarations(NoBar),
+  bar: String,
+) -> BothDeclarations(HasBar) {
+  BothDeclarations(..both_declarations, bar: Some(bar))
+}
+
+pub fn to_string(both_declarations: BothDeclarations(bar)) -> String {
+  let bar = case both_declarations.bar {
+    Some(slot) -> slot
+    None -> ""
+  }
+
+  "
+<div>
+    " <> both_declarations.foo <> "
+    " <> bar <> "
+</div>"
+}
+

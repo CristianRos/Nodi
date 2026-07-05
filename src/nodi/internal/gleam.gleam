@@ -6,7 +6,7 @@ import nodi/internal/error.{
   ValueIsEmpty,
 }
 
-// Gleam identifier types and validation come from Giacomo Cavalieri's
+// Gleam identifier types, validation and utils come from Giacomo Cavalieri's
 // implementation of Squirrel, including the nice comments :p
 // https://github.com/giacomocavalieri/squirrel
 

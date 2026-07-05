@@ -1,0 +1,29 @@
+---
+version: 2.0.1
+title: required only golden test
+file: ./test/nodi_test.gleam
+test_name: required_only_golden_test
+---
+>> required_only.nodi
+req=foo
+---
+<div>
+    <% foo %>
+</div>
+
+>> required_only.gleam
+pub type RequiredOnly {
+  RequiredOnly(foo: String)
+}
+
+pub fn new(foo: String) -> RequiredOnly {
+  RequiredOnly(foo:)
+}
+
+pub fn to_string(required_only: RequiredOnly) -> String {
+  "
+<div>
+    " <> required_only.foo <> "
+</div>"
+}
+

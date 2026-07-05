@@ -1,0 +1,15 @@
+---
+version: 2.0.1
+title: invalid file golden test
+file: ./test/nodi_test.gleam
+test_name: invalid_file_golden_test
+---
+>> invalid_file.nodi
+this_should_error
+---
+<div>
+    <%error%>
+</div>
+
+>> Error trying to generate: invalid_file.gleam
+Missing equals sign in the declaration "this_should_error"

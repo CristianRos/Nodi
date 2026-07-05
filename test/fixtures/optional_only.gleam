@@ -1,0 +1,32 @@
+import gleam/option.{type Option, None, Some}
+
+pub type OptionalOnly(foo) {
+  OptionalOnly(foo: Option(String))
+}
+
+pub type NoFoo
+
+pub type HasFoo
+
+pub fn new() -> OptionalOnly(NoFoo) {
+  OptionalOnly(foo: None)
+}
+
+pub fn with_foo(
+  _optional_only: OptionalOnly(NoFoo),
+  foo: String,
+) -> OptionalOnly(HasFoo) {
+  OptionalOnly(foo: Some(foo))
+}
+
+pub fn to_string(optional_only: OptionalOnly(foo)) -> String {
+  let foo = case optional_only.foo {
+    Some(slot) -> slot
+    None -> ""
+  }
+
+  "
+<div>
+    " <> foo <> "
+</div>"
+}

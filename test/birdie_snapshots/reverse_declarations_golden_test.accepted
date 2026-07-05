@@ -1,0 +1,50 @@
+---
+version: 2.0.1
+title: reverse declarations golden test
+file: ./test/nodi_test.gleam
+test_name: reverse_declarations_golden_test
+---
+>> reverse_declarations.nodi
+opt=bar
+req=foo
+---
+<div>
+    <% foo %>
+    <% bar %>
+</div>
+
+>> reverse_declarations.gleam
+import gleam/option.{type Option, None, Some}
+
+pub type ReverseDeclarations(bar) {
+  ReverseDeclarations(foo: String, bar: Option(String))
+}
+
+pub type NoBar
+
+pub type HasBar
+
+pub fn new(foo: String) -> ReverseDeclarations(NoBar) {
+  ReverseDeclarations(foo:, bar: None)
+}
+
+pub fn with_bar(
+  reverse_declarations: ReverseDeclarations(NoBar),
+  bar: String,
+) -> ReverseDeclarations(HasBar) {
+  ReverseDeclarations(..reverse_declarations, bar: Some(bar))
+}
+
+pub fn to_string(reverse_declarations: ReverseDeclarations(bar)) -> String {
+  let bar = case reverse_declarations.bar {
+    Some(slot) -> slot
+    None -> ""
+  }
+
+  "
+<div>
+    " <> reverse_declarations.foo <> "
+    " <> bar <> "
+</div>"
+}
+

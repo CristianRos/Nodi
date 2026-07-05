@@ -1,0 +1,31 @@
+---
+version: 2.0.1
+title: two required golden test
+file: ./test/nodi_test.gleam
+test_name: two_required_golden_test
+---
+>> two_required.nodi
+req=foo,bar
+---
+<div>
+    <% foo %>
+    <% bar %>
+</div>
+
+>> two_required.gleam
+pub type TwoRequired {
+  TwoRequired(foo: String, bar: String)
+}
+
+pub fn new(foo: String, bar: String) -> TwoRequired {
+  TwoRequired(foo:, bar:)
+}
+
+pub fn to_string(two_required: TwoRequired) -> String {
+  "
+<div>
+    " <> two_required.foo <> "
+    " <> two_required.bar <> "
+</div>"
+}
+
