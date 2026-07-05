@@ -94,5 +94,6 @@ pub const generated = "<div>
 ## Attribution
 Nodi takes inspiration from and includes code derived from 
 [squirrel](https://github.com/giacomocavalieri/squirrel) by Giacomo Cavalieri, which is an amazing project I learned a lot and still am!
+
 Squirrel is licensed under the Apache License 2.0.
 

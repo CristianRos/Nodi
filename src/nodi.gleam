@@ -100,7 +100,13 @@ pub fn get_nodi_file_paths(from path: String) -> List(String) {
   |> list.flat_map(fn(f) {
     let full_path = filepath.join(path, f)
     case simplifile.is_directory(full_path) {
-      Ok(True) -> get_nodi_file_paths(full_path)
+      Ok(True) -> {
+        case f {
+          // Omit "build/" folder
+          "build" -> []
+          _ -> get_nodi_file_paths(full_path)
+        }
+      }
       Ok(False) ->
         case full_path |> string.ends_with(".nodi") {
           True -> [full_path]
