@@ -35,6 +35,17 @@ pub fn with_bar(
   ReverseDeclarations(..reverse_declarations, bar: Some(bar))
 }
 
+pub fn with_bar_when(
+  reverse_declarations: ReverseDeclarations(NoBar),
+  bar: String,
+  when: Bool,
+) -> ReverseDeclarations(HasBar) {
+  case when {
+    True -> ReverseDeclarations(..reverse_declarations, bar: Some(bar))
+    False -> ReverseDeclarations(..reverse_declarations, bar: None)
+  }
+}
+
 pub fn to_string(reverse_declarations: ReverseDeclarations(bar)) -> String {
   let bar = case reverse_declarations.bar {
     Some(slot) -> slot

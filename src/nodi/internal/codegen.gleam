@@ -167,7 +167,9 @@ fn constructor_fn(
   ])
 }
 
-/// Creates a document with a builder `with_*` function for each optional slot
+/// Creates a builder `with_*` function for each optional slot.
+/// It also generates runtime builder functions
+/// `with_*_when`, `with_*_maybe` and `with_*_each`
 /// 
 /// ```
 /// // Input:
@@ -180,9 +182,15 @@ fn constructor_fn(
 ///   Wibble(..wibble, foo: Some(foo))
 /// }
 /// 
+/// pub fn with_foo_when...
+/// pub fn with_foo_maybe...
+/// pub fn with_foo_each...
+/// 
 /// pub fn with_bar(wibble: Wibble(foo, NoBar), bar: String) -> Wibble(foo, HasBar) {
 ///   Wibble(..wibble, bar: Some(bar))
 /// }
+/// 
+/// ...
 /// ```
 fn builder_fns(
   template_name template_name: String,
@@ -215,29 +223,69 @@ fn builder_fns(
     let is_optional_only =
       list.length(optional_slots) == 1 && list.is_empty(required_slots)
 
-    string.concat([
-      "pub fn with_" <> slot <> "(",
-      case is_optional_only {
-        True -> "_"
-        False -> ""
-      },
-      template_name <> ": " <> template_type_name <> "(",
-      string.join(type_args, with: ", "),
-      "), ",
-      slot <> ": String",
-      ") -> ",
-      template_type_name <> "(",
-      string.join(return_args, with: ", "),
-      ")",
-      " {\n",
-      case is_optional_only {
-        True -> "\t" <> template_type_name <> "("
-        False -> "\t" <> template_type_name <> "(.." <> template_name <> ", "
-      },
-      slot <> ": Some(" <> slot <> "))",
-      "\n",
-      "}",
-    ])
+    let template_param =
+      string.concat([
+        case is_optional_only {
+          True -> "_"
+          False -> ""
+        },
+        template_name <> ": " <> template_type_name <> "(",
+        string.join(type_args, with: ", "),
+        "), ",
+      ])
+
+    let is_optional_only_return = fn(is_some: Bool) {
+      string.concat([
+        case is_optional_only {
+          True -> "\t" <> template_type_name <> "("
+          False -> "\t" <> template_type_name <> "(.." <> template_name <> ", "
+        },
+        slot
+          <> case is_some {
+          True -> ": Some(" <> slot <> "))"
+          False -> ": None)"
+        },
+      ])
+    }
+
+    // pub fn with_foo(wibble: Wibble(NoFoo, bar), foo: String) -> Wibble(HasFoo, bar) {
+    //   Wibble(..wibble, foo: Some(foo))
+    // }
+    let builder =
+      string.concat([
+        "pub fn with_" <> slot <> "(",
+        template_param,
+        slot <> ": String",
+        ") -> ",
+        template_type_name <> "(",
+        string.join(return_args, with: ", "),
+        ")",
+        " {\n",
+        is_optional_only_return(True),
+        "\n",
+        "}",
+      ])
+
+    // pub fn with_foo_when(wibble: Wibble(NoFoo, bar), foo: String, when: Bool) -> Wibble(HasFoo, bar) {
+    //   case when {
+    //     True -> Wibble(..wibble, foo: Some(foo))
+    //     False -> Wibble(..wibble, foo: None)
+    //   }
+    // }
+    let builder_when =
+      string.concat([
+        "pub fn with_" <> slot <> "_when(",
+        template_param,
+        slot <> ": String, when: Bool) -> " <> template_type_name <> "(",
+        string.join(return_args, ", ") <> ") {\n",
+        "case when {\n",
+        "\tTrue -> " <> is_optional_only_return(True) <> "\n",
+        "\tFalse -> " <> is_optional_only_return(False) <> "\n",
+        "}\n",
+        "}",
+      ])
+
+    [builder, builder_when] |> string.join(with: "\n\n")
   })
   |> string.join(with: "\n\n")
   |> string.append("\n\n")

@@ -33,6 +33,17 @@ pub fn with_foo(
   OptionalOnly(foo: Some(foo))
 }
 
+pub fn with_foo_when(
+  _optional_only: OptionalOnly(NoFoo),
+  foo: String,
+  when: Bool,
+) -> OptionalOnly(HasFoo) {
+  case when {
+    True -> OptionalOnly(foo: Some(foo))
+    False -> OptionalOnly(foo: None)
+  }
+}
+
 pub fn to_string(optional_only: OptionalOnly(foo)) -> String {
   let foo = case optional_only.foo {
     Some(slot) -> slot

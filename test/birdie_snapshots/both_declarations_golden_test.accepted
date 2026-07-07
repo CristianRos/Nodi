@@ -35,6 +35,17 @@ pub fn with_bar(
   BothDeclarations(..both_declarations, bar: Some(bar))
 }
 
+pub fn with_bar_when(
+  both_declarations: BothDeclarations(NoBar),
+  bar: String,
+  when: Bool,
+) -> BothDeclarations(HasBar) {
+  case when {
+    True -> BothDeclarations(..both_declarations, bar: Some(bar))
+    False -> BothDeclarations(..both_declarations, bar: None)
+  }
+}
+
 pub fn to_string(both_declarations: BothDeclarations(bar)) -> String {
   let bar = case both_declarations.bar {
     Some(slot) -> slot

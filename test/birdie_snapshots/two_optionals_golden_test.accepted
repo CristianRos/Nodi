@@ -38,11 +38,33 @@ pub fn with_foo(
   TwoOptionals(..two_optionals, foo: Some(foo))
 }
 
+pub fn with_foo_when(
+  two_optionals: TwoOptionals(NoFoo, bar),
+  foo: String,
+  when: Bool,
+) -> TwoOptionals(HasFoo, bar) {
+  case when {
+    True -> TwoOptionals(..two_optionals, foo: Some(foo))
+    False -> TwoOptionals(..two_optionals, foo: None)
+  }
+}
+
 pub fn with_bar(
   two_optionals: TwoOptionals(foo, NoBar),
   bar: String,
 ) -> TwoOptionals(foo, HasBar) {
   TwoOptionals(..two_optionals, bar: Some(bar))
+}
+
+pub fn with_bar_when(
+  two_optionals: TwoOptionals(foo, NoBar),
+  bar: String,
+  when: Bool,
+) -> TwoOptionals(foo, HasBar) {
+  case when {
+    True -> TwoOptionals(..two_optionals, bar: Some(bar))
+    False -> TwoOptionals(..two_optionals, bar: None)
+  }
 }
 
 pub fn to_string(two_optionals: TwoOptionals(foo, bar)) -> String {
